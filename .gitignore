@@ -4,3 +4,7 @@
 !.vscode/launch.json
 !.vscode/extensions.json
 .history
+GPATH
+GRTAGS
+GTAGS
+.gitignore.swp

@@ -1,8 +1,8 @@
-#include <Wire.h>
+#include <OneWire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_ADXL345_U.h>
-
+#include <STEMCalibration.h>
 /* This driver uses the Adafruit unified sensor library (Adafruit_Sensor),
    which provides a common 'type' for sensor data and some helper functions.
    
@@ -33,13 +33,13 @@ Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 
 
 /*************************/
-/* These offsets are used to calculate the acceleration, as the sensor can sometimes display erroneous information
-If the serial monitor is showing
+/* These offsets are used to calculate the acceleration, as the 
+sensor can sometimes display erroneous information 
+If the serial monitor is showing an acceleration while the 
+sensor is resting on a flat surface, adjust these values to the 
+average 
 
 */
-float xoffset = 0;
-float yoffset = 0.63;
-float zoffset = -9.65;
 
 /**************************************************************************/
 /*
@@ -230,7 +230,7 @@ void loop(void)
 
     /* Then convert the atmospheric pressure, and SLP to altitude         */
     /* Update this next line with the current SLP for better results      */
-    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    float seaLevelPressure = CURRENTSEALEVELPRESSURE;
     Serial.print("Altitude:    "); 
     Serial.print(bmp.pressureToAltitude(seaLevelPressure,
                                         bmpevent.pressure)); 

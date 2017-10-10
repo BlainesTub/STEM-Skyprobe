@@ -1,8 +1,10 @@
-#include <Wire.h>
+#include <OneWire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_ADXL345_U.h>
-
+#include <SensorCalibration.h>
+#include <SPI.h>
+#include "SdFat.h"
 /* This driver uses the Adafruit unified sensor library (Adafruit_Sensor),
    which provides a common 'type' for sensor data and some helper functions.
    
@@ -32,14 +34,65 @@ Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 
 
-/*************************/
-/* These offsets are used to calculate the acceleration, as the sensor can sometimes display erroneous information
-If the serial monitor is showing
+// SD chip select pin.  Be sure to disable any other SPI devices such as Enet.
+const uint8_t chipSelect = SS;
 
-*/
-float xoffset = 0;
-float yoffset = 0.63;
-float zoffset = -9.65;
+// Interval between data records in milliseconds.
+// The interval must be greater than the maximum SD write latency plus the
+// time to acquire and write data to the SD to avoid overrun errors.
+// Run the bench example to check the quality of your SD card.
+//TODO add this variable to the sensor configuration library
+const uint32_t SAMPLE_INTERVAL_MS = 1000;
+
+// Log file base name.  Must be six characters or less.
+#define FILE_BASE_NAME "Data"
+//------------------------------------------------------------------------------
+// File system object.
+SdFat sd;
+
+// Log file.
+SdFile file;
+
+// Time in micros for next data record.
+uint32_t logTime;
+
+
+//==============================================================================
+// User functions.  Edit writeHeader() and logData() for your requirements.
+
+const uint8_t ANALOG_COUNT = 4;
+//------------------------------------------------------------------------------
+// Write data header.
+void writeHeader() {
+  file.print(F("micros"));
+  for (uint8_t i = 0; i < ANALOG_COUNT; i++) {
+    file.print(F(",adc"));
+    file.print(i, DEC);
+  }
+  file.println();
+}
+//------------------------------------------------------------------------------
+// Log a data record.
+void logData() {
+  uint16_t data[ANALOG_COUNT];
+
+  // Read all channels to avoid SD write latency between readings.
+  for (uint8_t i = 0; i < ANALOG_COUNT; i++) {
+    data[i] = analogRead(i);
+  }
+  // Write data to file.  Start with log time in micros.
+  file.print(logTime);
+
+  // Write ADC data to CSV record.
+  for (uint8_t i = 0; i < ANALOG_COUNT; i++) {
+    file.write(',');
+    file.print(data[i]);
+  }
+  file.println();
+}
+
+#define error(msg) sd.errorHalt(F(msg))
+
 
 /**************************************************************************/
 /*
@@ -74,6 +127,7 @@ void displaySensorDetails(void)
   delay(500);
 
 }
+
 void displayDataRate(void)
 {
   Serial.print  ("Data Rate:    "); 
@@ -165,10 +219,64 @@ void displayRange(void)
 /**************************************************************************/
 void setup(void) 
 {
+
+  const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) - 1;
+  char fileName[13] = FILE_BASE_NAME "00.csv";
+
   Serial.begin(9600);
   Serial.println("Pressure Sensor Test"); Serial.println("");
   Serial.println("Accelerometer Test"); Serial.println("");
+/* Begin SD card test code */
+  // Wait for USB Serial 
+  while (!Serial) {
+    SysCall::yield();
+  }
+  delay(1000);
 
+  Serial.println(F("Type any character to start"));
+  while (!Serial.available()) {
+    SysCall::yield();
+  }
+  
+  // Initialize at the highest speed supported by the board that is
+  // not over 50 MHz. Try a lower speed if SPI errors occur.
+  if (!sd.begin(chipSelect, SD_SCK_MHZ(50))) {
+    sd.initErrorHalt();
+  }
+
+  // Find an unused file name.
+  if (BASE_NAME_SIZE > 6) {
+    error("FILE_BASE_NAME too long");
+  }
+  while (sd.exists(fileName)) {
+    if (fileName[BASE_NAME_SIZE + 1] != '9') {
+      fileName[BASE_NAME_SIZE + 1]++;
+    } else if (fileName[BASE_NAME_SIZE] != '9') {
+      fileName[BASE_NAME_SIZE + 1] = '0';
+      fileName[BASE_NAME_SIZE]++;
+    } else {
+      error("Can't create file name");
+    }
+  }
+  if (!file.open(fileName, O_CREAT | O_WRITE | O_EXCL)) {
+    error("file.open");
+  }
+  // Read any Serial data.
+  do {
+    delay(10);
+  } while (Serial.available() && Serial.read() >= 0);
+
+  Serial.print(F("Logging to: "));
+  Serial.println(fileName);
+  Serial.println(F("Type any character to stop"));
+
+  // Write data header.
+  writeHeader();
+
+  // Start on a multiple of the sample interval.
+  logTime = micros()/(1000UL*SAMPLE_INTERVAL_MS) + 1;
+  logTime *= 1000UL*SAMPLE_INTERVAL_MS;
+/*  end sd code */
   /* Initialise the sensor */
   if(!bmp.begin())
   {
@@ -187,7 +295,7 @@ void setup(void)
  
 /**************************************************************************/
 /*
-    Arduino loop function, called once 'setup' is complete (your own code
+    Arduino loop functi on, called once 'setup' is complete (your own code
     should go here)temperature                                                                
 */
 /**************************************************************************/
@@ -230,7 +338,7 @@ void loop(void)
 
     /* Then convert the atmospheric pressure, and SLP to altitude         */
     /* Update this next line with the current SLP for better results      */
-    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    float seaLevelPressure = CURRENTSEALEVELPRESSURE;
     Serial.print("Altitude:    "); 
     Serial.print(bmp.pressureToAltitude(seaLevelPressure,
                                         bmpevent.pressure)); 
@@ -244,11 +352,39 @@ void loop(void)
   float xaccel = accelevent.acceleration.x + xoffset;
   float yaccel = accelevent.acceleration.y + yoffset;
   float zaccel = accelevent.acceleration.z + zoffset;
-  Serial.print("X: "); Serial.print(accelevent.acceleration.x); Serial.print("  ");
+  Serial.print("X: "); Serial.print(xaccel); Serial.print("  ");
   Serial.print("Y: "); Serial.print(yaccel); Serial.print("  ");
   Serial.print("Z: "); Serial.print(zaccel); Serial.print("  ");Serial.println("m/s^2 ");
   
-  delay(1000);
+  // Time for next record.
+  logTime += 1000UL*SAMPLE_INTERVAL_MS;
+
+  // Wait for log time.
+  int32_t diff;
+  do {
+    diff = micros() - logTime;
+  } while (diff < 0);
+
+  // Check for data rate too high.
+  if (diff > 10) {
+    error("Missed data record");
+  }
+
+  logData();
+
+  // Force data to SD and update the directory entry to avoid data loss.
+  if (!file.sync() || file.getWriteError()) {
+    error("write error");
+  }
+
+  if (Serial.available()) {
+    // Close file and stop.
+    file.close();
+    Serial.println(F("Done"));
+    SysCall::halt();
+  }
+
+  delay(500);
 }
 
 
