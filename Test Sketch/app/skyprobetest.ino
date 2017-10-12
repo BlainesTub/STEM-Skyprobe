@@ -1,10 +1,12 @@
-#include <OneWire.h>
+#include <Sleep_n0m1.h>
+#include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP085_U.h>
 #include <Adafruit_ADXL345_U.h>
 #include <SensorCalibration.h>
 #include <SPI.h>
 #include "SdFat.h"
+
 /* This driver uses the Adafruit unified sensor library (Adafruit_Sensor),
    which provides a common 'type' for sensor data and some helper functions.
    
@@ -33,7 +35,11 @@
 Adafruit_BMP085_Unified bmp = Adafruit_BMP085_Unified(10085);
 Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified(12345);
 
-
+float xaccelstorage[5] = {0, 0, 0, 0, 0};
+float yaccelstorage[5] = {0, 0, 0, 0, 0};
+float zaccelstorage[5] = {0, 0, 0, 0, 0};
+bool inMotion = true; 
+bool hasLaunched = false;
 // SD chip select pin.  Be sure to disable any other SPI devices such as Enet.
 const uint8_t chipSelect = SS;
 
@@ -45,7 +51,7 @@ const uint8_t chipSelect = SS;
 const uint32_t SAMPLE_INTERVAL_MS = 1000;
 
 // Log file base name.  Must be six characters or less.
-#define FILE_BASE_NAME "Data"
+#define FILE_BASE_NAME "Test"
 //------------------------------------------------------------------------------
 // File system object.
 SdFat sd;
@@ -56,43 +62,82 @@ SdFile file;
 // Time in micros for next data record.
 uint32_t logTime;
 
-
+uint32_t time;
 //==============================================================================
 // User functions.  Edit writeHeader() and logData() for your requirements.
 
-const uint8_t ANALOG_COUNT = 4;
 //------------------------------------------------------------------------------
 // Write data header.
 void writeHeader() {
-  file.print(F("micros"));
-  for (uint8_t i = 0; i < ANALOG_COUNT; i++) {
-    file.print(F(",adc"));
-    file.print(i, DEC);
+  file.print(F("Time,"));
+  file.print("Pressure,");
+  file.print("Temperature,");
+  file.print("Altitude,");
+  file.print("X Acceleration,");
+  file.print("Y Acceleration,");
+  file.print("Z Acceleration,\n");
   }
-  file.println();
+
+void logSensorData(float sensorData) {
+  file.print(sensorData);
+  file.print(",");
 }
-//------------------------------------------------------------------------------
-// Log a data record.
-void logData() {
-  uint16_t data[ANALOG_COUNT];
-
-  // Read all channels to avoid SD write latency between readings.
-  for (uint8_t i = 0; i < ANALOG_COUNT; i++) {
-    data[i] = analogRead(i);
-  }
-  // Write data to file.  Start with log time in micros.
-  file.print(logTime);
-
-  // Write ADC data to CSV record.
-  for (uint8_t i = 0; i < ANALOG_COUNT; i++) {
-    file.write(',');
-    file.print(data[i]);
-  }
-  file.println();
-}
-
 #define error(msg) sd.errorHalt(F(msg))
 
+void isMoving(float exaccelstorage, float eyaccelstorage, float ezaccelstorage) {
+  xaccelstorage[4] = xaccelstorage[3];
+  xaccelstorage[3] = xaccelstorage[2];
+  xaccelstorage[2] = xaccelstorage[1];
+  xaccelstorage[1] = xaccelstorage[0];
+  xaccelstorage[0] = exaccelstorage;
+  yaccelstorage[4] = yaccelstorage[3];
+  yaccelstorage[3] = yaccelstorage[2];
+  yaccelstorage[2] = yaccelstorage[1];
+  yaccelstorage[1] = yaccelstorage[0];
+  yaccelstorage[0] = eyaccelstorage;
+  zaccelstorage[4] = zaccelstorage[3];
+  zaccelstorage[3] = zaccelstorage[2];
+  zaccelstorage[2] = zaccelstorage[1];
+  zaccelstorage[1] = zaccelstorage[0];
+  zaccelstorage[0] = ezaccelstorage;
+  float xmean = (xaccelstorage[0] + xaccelstorage[1] + xaccelstorage[2] + xaccelstorage[3] + xaccelstorage[4]) / 5;
+  float ymean = (yaccelstorage[0] + yaccelstorage[1] + yaccelstorage[2] + yaccelstorage[3] + yaccelstorage[4]) / 5;
+  float zmean = (zaccelstorage[0] + zaccelstorage[1] + zaccelstorage[2] + zaccelstorage[3] + zaccelstorage[4]) / 5;
+  Serial.println(xmean);
+  Serial.println(ymean);
+  Serial.println(zmean);
+  bool isxaccelstorageerating = false;
+  bool isyaccelstorageerating = false;
+  bool iszaccelstorageerating = false;
+  if (xmean >= -0.1 && xmean <= 0.1)  {
+      isxaccelstorageerating = false;
+  } else {
+    isxaccelstorageerating = true;
+  } 
+  if (ymean >= -0.1 && ymean <= 0.1) {
+      isyaccelstorageerating = false;
+  } else {
+    isyaccelstorageerating = true;
+  }
+  if (zmean >= -0.1 && zmean <= 0.1) {
+      iszaccelstorageerating = false;
+  } else {
+    iszaccelstorageerating = true;
+  }
+  if (isxaccelstorageerating && isyaccelstorageerating) {
+    inMotion = true;
+    hasLaunched = true;
+  } else if (isyaccelstorageerating && iszaccelstorageerating) {
+    inMotion = true;
+    hasLaunched = true;
+  } else if (iszaccelstorageerating && isxaccelstorageerating) {
+    inMotion = true;
+    hasLaunched = true;
+  } else {
+    inMotion = false;
+  }
+  
+}
 
 /**************************************************************************/
 /*
@@ -222,22 +267,15 @@ void setup(void)
 
   const uint8_t BASE_NAME_SIZE = sizeof(FILE_BASE_NAME) - 1;
   char fileName[13] = FILE_BASE_NAME "00.csv";
-
+  time = 0;
   Serial.begin(9600);
-  Serial.println("Pressure Sensor Test"); Serial.println("");
-  Serial.println("Accelerometer Test"); Serial.println("");
-/* Begin SD card test code */
+/* Begin SD card test code 
   // Wait for USB Serial 
   while (!Serial) {
     SysCall::yield();
   }
   delay(1000);
-
-  Serial.println(F("Type any character to start"));
-  while (!Serial.available()) {
-    SysCall::yield();
-  }
-  
+*/
   // Initialize at the highest speed supported by the board that is
   // not over 50 MHz. Try a lower speed if SPI errors occur.
   if (!sd.begin(chipSelect, SD_SCK_MHZ(50))) {
@@ -292,7 +330,7 @@ void setup(void)
   displayRange();
   Serial.println("");
 }
- 
+
 /**************************************************************************/
 /*
     Arduino loop functi on, called once 'setup' is complete (your own code
@@ -301,64 +339,84 @@ void setup(void)
 /**************************************************************************/
 void loop(void) 
 {
-  /* Get a new sensor event */ 
-  sensors_event_t bmpevent;
-  bmp.getEvent(&bmpevent);
   sensors_event_t accelevent; 
   accel.getEvent(&accelevent);
-  /* Display the results (barometric pressure is measure in hPa) */
-  if (bmpevent.pressure)
-  {
-    /* Display atmospheric pressue in hPa */
-    Serial.print("Pressure:    ");
-    Serial.print(bmpevent.pressure);
-    Serial.println(" hPa");
-    
-    /* Calculating altitude with reasonable accuracy requires pressure    *
-     * sea level pressure for your position at the moment the data is     *
-     * converted, as well as the ambient temperature in degress           *
-     * celcius.  If you don't have these values, a 'generic' value of     *
-     * 1013.25 hPa can be used (defined as SENSORS_PRESSURE_SEALEVELHPA   *
-     * in sensors.h), but this isn't ideal and will give variable         *
-     * results from one day to the next.                                  *
-     *                                                                    *
-     * You can usually find the current SLP value by looking at weather   *
-     * websites or from environmental information centers near any major  *
-     * airport.                                                           *
-     *                                                                    *
-     * For example, for Paris, France you can check the current mean      *
-     * pressure and sea level at: http://bit.ly/16Au8ol                   */
-     
-    /* First we get the current temperature from the BMP085 */
-    float temperature;
-    bmp.getTemperature(&temperature);
-    Serial.print("Temperature: ");
-    Serial.print(temperature);
-    Serial.println(" C");
-
-    /* Then convert the atmospheric pressure, and SLP to altitude         */
-    /* Update this next line with the current SLP for better results      */
-    float seaLevelPressure = CURRENTSEALEVELPRESSURE;
-    Serial.print("Altitude:    "); 
-    Serial.print(bmp.pressureToAltitude(seaLevelPressure,
-                                        bmpevent.pressure)); 
-    Serial.println(" m");
-    Serial.println("");
-  }
-  else
-  {
-    Serial.println("Sensor error");
-  }
   float xaccel = accelevent.acceleration.x + xoffset;
   float yaccel = accelevent.acceleration.y + yoffset;
   float zaccel = accelevent.acceleration.z + zoffset;
-  Serial.print("X: "); Serial.print(xaccel); Serial.print("  ");
-  Serial.print("Y: "); Serial.print(yaccel); Serial.print("  ");
-  Serial.print("Z: "); Serial.print(zaccel); Serial.print("  ");Serial.println("m/s^2 ");
+  isMoving(xaccel, yaccel, zaccel);
+  if(inMotion && hasLaunched)
+  {
+     /* Get a new sensor event */ 
+     sensors_event_t bmpevent;
+     bmp.getEvent(&bmpevent);
+
+     file.print((time));
+     file.print(",");
+     /* Display the results (barometric pressure is measure in hPa) */
+     if (bmpevent.pressure)
+     {
+       /* Display atmospheric pressue in hPa */
+       Serial.print("Pressure:    ");
+       Serial.print(bmpevent.pressure);
+       logSensorData(bmpevent.pressure);
+       Serial.println(" hPa");
+
+       /* Calculating altitude with reasonable accuracy requires pressure    *
+       * sea level pressure for your position at the moment the data is     *
+       * converted, as well as the ambient temperature in degress           *
+       * celcius.  If you don't have these values, a 'generic' value of     *
+       * 1013.25 hPa can be used (defined as SENSORS_PRESSURE_SEALEVELHPA   *
+       * in sensors.h), but this isn't ideal and will give variable         *
+       * results from one day to the next.                                  *
+       *                                                                    *
+       * You can usually find the current SLP value by looking at weather   *
+       * websites or from environmental information centers near any major  *
+       * airport.                                                           *
+       *                                                                    *
+       * For example, for Paris, France you can check the current mean      *
+       * pressure and sea level at: http://bit.ly/16Au8ol                   */
+        
+       /* First we get the current temperature from the BMP085 */
+       float temperature;
+       bmp.getTemperature(&temperature);
+       logSensorData(temperature);
+       Serial.print("Temperature: ");
+       Serial.print(temperature);
+       Serial.println(" C");
+
+       /* Then convert the atmospheric pressure, and SLP to altitude         */
+       /* Update this next line with the current SLP for better results      */
+       float seaLevelPressure = CURRENTSEALEVELPRESSURE;
+       float altitude = bmp.pressureToAltitude(seaLevelPressure, bmpevent.pressure);
+       Serial.print("Altitude:    "); 
+       Serial.print(altitude); 
+       logSensorData(altitude);
+       Serial.println(" m");
+       Serial.println("");
+     }
+     else 
+     {
+       Serial.println("Sensor error");
+     }
+
+     logSensorData(xaccel);
+     logSensorData(yaccel);
+     logSensorData(zaccel);
+     Serial.print("X: "); Serial.print(xaccel); Serial.print("  ");
+     Serial.print("Y: "); Serial.print(yaccel); Serial.print("  ");
+     Serial.print("Z: "); Serial.print(zaccel); Serial.print("  ");Serial.println("m/s^2 ");
+
+  } else { 
+    file.print((time));
+    file.print(",");
+    file.print("Probe is not,");
+    file.print("collecting data");
+  }
   
+
   // Time for next record.
   logTime += 1000UL*SAMPLE_INTERVAL_MS;
-
   // Wait for log time.
   int32_t diff;
   do {
@@ -370,21 +428,20 @@ void loop(void)
     error("Missed data record");
   }
 
-  logData();
-
+  time += 1000;
+  Serial.println(time);
   // Force data to SD and update the directory entry to avoid data loss.
   if (!file.sync() || file.getWriteError()) {
     error("write error");
   }
-
-  if (Serial.available()) {
+file.print("\n");
+  if (inMotion == false && hasLaunched == true) {
     // Close file and stop.
     file.close();
     Serial.println(F("Done"));
     SysCall::halt();
   }
-
-  delay(500);
+  
 }
 
 
