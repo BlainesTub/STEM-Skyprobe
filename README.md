@@ -30,4 +30,8 @@ To install these libraries, go into your arduino library and click Sketch/Includ
 
 [add screenshot of arduino library window]
 
-This will open up a window that will let you search and download all 
+This will open up a window that will let you search and download all the needed libraries. 
+
+## Moving the Sensor Calibration Library
+
+In order for the sketch to upload correctly, the SensorCalibration library must be moved from it's location in STEM-Skyprobe/
