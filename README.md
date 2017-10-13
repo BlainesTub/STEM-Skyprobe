@@ -32,6 +32,25 @@ To install these libraries, go into your arduino library and click Sketch/Includ
 
 This will open up a window that will let you search and download all the needed libraries. 
 
-## Moving the Sensor Calibration Library
+## Installing the Sensor Calibration Library
 
-In order for the sketch to upload correctly, the SensorCalibration library must be moved from it's location in STEM-Skyprobe/
+In order for the sketch to upload correctly, the SensorCalibration library's containing must be moved from it's location in STEM-Skyprobe/SensorCalibration to the location of your Arduino libraries, which will vary depending on your operating system:
+
+Windows:
+
+`(Your user directory)/Arduino/libraries`
+
+Linux: 
+
+`/home/users/(Your username)/Arduino/libraries`
+
+## Wiring
+Information on how to wire the skyprobe for both testing and launch are available in the two fritzing sketches included in the repository. 
+
+## Testing Procedure
+In order to test the probe, first complete all the previous steps. Then, connect the arduino to your computer and from the arduino IDE and run the test sketch. You should get a successful upload to the arduino, if not check that you did all the previous steps correctly as well as the common issues section and try again. 
+
+## Common Issues
+The most common problem that I've encountered has been the accelerometer randomly failing, and stopping collecting data. The solution to this problem for me has been running the accelerometer test sketch, which you can find in the Arduino IDE in File/Examples/Adafruit ADXL345/sensortest. 
+
+Uploading and running the sketch should output actual values from the accelerometer and fix it from both the test/launch sketch and the accelerometer sketch. 
