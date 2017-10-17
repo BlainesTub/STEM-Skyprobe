@@ -21,20 +21,18 @@ There are 5 individual Arduino libraries that need to be installed before the sc
 The libraries that need to be installed are:
 
 * Adafruit Unified Sensor
-* Sparkfun ADXL345
+* Adafruit ADXL345
 * Adafruit BMP085 Unified
 * Sleep_n0m1
 * SdFat
 
-You can install all of these libraries with the exception of the Sparkfun ADXL345 library by going into your arduino IDE and clicking Sketch/Include Library/Manage Libraries. 
+You can install all of these libraries by going into your arduino IDE and clicking Sketch/Include Library/Manage Libraries. 
 
 This will open up a window that will let you search and download all the needed libraries. 
 
-To download the Sparkfun ADXL345 Library, go to this link: https://cdn.sparkfun.com/assets/learn_tutorials/5/4/8/SparkFun_ADXL345_Arduino_Library.zip
+## Installing the Sensor Calibration Library
 
-This will automatically download a zip file that contains the library, as well as few example sketches that'll let you test your wiring. 
-In order for the arduino sketch to correctly compile, you must move this library to the location of your Arduino libraries, which depends on your operating system:
-
+In order for the sketch to upload correctly, the SensorCalibration library's containing must be moved from it's location in STEM-Skyprobe/SensorCalibration to the the location of your Arduino Libraries
 
 Windows:
 
@@ -43,10 +41,6 @@ Windows:
 Linux: 
 
 `/home/users/(Your username)/Arduino/libraries`
-
-## Installing the Sensor Calibration Library
-
-In order for the sketch to upload correctly, the SensorCalibration library's containing must be moved from it's location in STEM-Skyprobe/SensorCalibration to the same location that you moved the Sparkfun library in the previous step.
 
 
 ## Wiring
