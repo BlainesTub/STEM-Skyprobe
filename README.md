@@ -47,8 +47,15 @@ Linux:
 Information on how to wire the skyprobe for both testing and launch are available in the two fritzing sketches included in the repository. 
 
 ## Testing Procedure
-In order to test the probe, first complete all the previous steps. Then, connect the arduino to your computer and from the arduino IDE and run the test sketch. You should get a successful upload to the arduino, if not check that you did all the previous steps correctly as well as the common issues section and try again. 
+In order to test the probe, first complete all the previous steps. Then, connect the arduino to your computer and from the arduino IDE  run these included  sketches for testing each of the external components of the Arduino.
 
+* ADXL345(Accelerometer): File/Examples/Adafruit ADXL345/sensortest
+* BMP180(Barometer + Thermometer): File/Examples/Adafruit BMP085 Unified/sensorapi
+* MicroSD Card Reader: File/Examples/SdFat/SdInfo 
+
+After verifying that each component works correctly on its own with them all connected, then run the skyprobetest.ino file from the arduino IDE.
+
+If the SdInfo sketch outputs an error and says the Sd card needs to be formatted, download and run the formatter from this website: https://www.sdcard.org/downloads/formatter_4/ and run it with the Sd card inserted in your computer. 
 ## Common Issues
 The most common problem that I've encountered has been the accelerometer randomly failing, and stopping collecting data. The solution to this problem for me has been running the accelerometer test sketch, which you can find in the Arduino IDE in File/Examples/Adafruit ADXL345/sensortest. 
 
