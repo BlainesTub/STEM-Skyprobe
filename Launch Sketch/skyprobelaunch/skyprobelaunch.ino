@@ -16,8 +16,14 @@ float xaccelstorage[5] = {0, 0, 0, 0, 0};
 float yaccelstorage[5] = {0, 0, 0, 0, 0};
 float zaccelstorage[5] = {0, 0, 0, 0, 0};
 
+//Array that stores altitude data for calculating apogee
+float altitudestorage[3] = {0, 0, 0};
+
 //This bool stores the state of motion for the probe.
 bool inMotion = true; 
+
+//if this is true, you better have your parachute deployed
+bool atApogee = false;
 
 //This bool stores whether the probe has launched or not.
 bool hasLaunched = false;
@@ -59,6 +65,26 @@ void logSensorData(float sensorData) {
 }
 // This is used by the SD library when there is an error. 
 #define error(msg) sd.errorHalt(F(msg))
+
+// Quick and dirty function to check if we've hit apogee yet, parachute triggering code should be added here or in an 
+// if statement in void loop()
+void isAtApogee(float exaltitude) {
+  altitudestorage[2] = altitudestorage[1];
+  altitudestorage[1] = altitudestorage[0];
+  altitudestorage[0] = exaltitude;
+  
+    if(altitudestorage[2] > altitudestorage[0] || altitudestorage[1] > altitudestorage[0]) {
+      atApogee == true;
+    } else {
+      atApogee == false;
+    }
+  
+}
+
+
+
+
+
 
 /* This function determines whether the probe is moving or not by taking
 the mean of the previous 5 values for each axis on the accelerometer 
@@ -216,6 +242,11 @@ void loop(void)
       float seaLevelPressure = CURRENTSEALEVELPRESSURE;
       float altitude = bmp.pressureToAltitude(seaLevelPressure, bmpevent.pressure);
       logSensorData(altitude);
+      isAtApogee(altitude);
+    }
+
+    if(atApogee) {
+      // do yo parachute code
     }
     //Logging all the data from the accelerometer to the csv file. 
     logSensorData(xaccel);
