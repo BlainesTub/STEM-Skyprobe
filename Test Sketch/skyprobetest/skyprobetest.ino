@@ -196,7 +196,6 @@ void setup(void)
 
   Serial.print(F("Logging to: "));
   Serial.println(fileName);
-  Serial.println(F("Type any character to stop"));
 
   // End SD Card file creation and debugging.
   
