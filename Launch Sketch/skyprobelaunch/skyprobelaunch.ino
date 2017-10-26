@@ -50,12 +50,12 @@ uint32_t time;
 // Writes the top row to the csv file for the spreadsheet. 
 void writeHeader() {
   file.print(F("Time (ms),"));
-  file.print("Pressure (hPa),");
-  file.print("Temperature (C),");
-  file.print("Altitude (m),");
-  file.print("X Acceleration (g),");
-  file.print("Y Acceleration (g),");
-  file.print("Z Acceleration (g),\n");
+  file.print(F("Pressure (hPa),"));
+  file.print(F("Temperature (C),"));
+  file.print(F("Altitude (m),"));
+  file.print(F("X Acceleration (g),"));
+  file.print(F("Y Acceleration (g),"));
+  file.print(F("Z Acceleration (g),\n"));
   }
 
   // This function is used to write sensor data to the csv file.

@@ -49,12 +49,12 @@ uint32_t time;
 // Writes the top row to the csv file for the spreadsheet. 
 void writeHeader() {
   file.print(F("Time (ms),"));
-  file.print("Pressure (hPa),");
-  file.print("Temperature (C),");
-  file.print("Altitude (m),");
-  file.print("X Acceleration (g),");
-  file.print("Y Acceleration (g),");
-  file.print("Z Acceleration (g),\n");
+  file.print(F("Pressure (hPa),"));
+  file.print(F("Temperature (C),"));
+  file.print(F("Altitude (m),"));
+  file.print(F("X Acceleration (g),"));
+  file.print(F("Y Acceleration (g),"));
+  file.print(F("Z Acceleration (g),\n"));
 }
 
 // This function is used to write sensor data to the csv file.
@@ -64,7 +64,7 @@ void logSensorData(float sensorData) {
 }
 
 // This is used by the SD library when there is an error.
-#define error(msg) sd.errorHalt(F(msg))
+#define error(msg) sd.errorHalt(msg)
 
 // Quick and dirty function to check if we've hit apogee yet, parachute triggering code should be added here or in an 
 // if statement in void loop()
@@ -104,17 +104,17 @@ void isMoving(float exaccel, float eyaccel, float ezaccel) {
   zaccelstorage[2] = zaccelstorage[1];
   zaccelstorage[1] = zaccelstorage[0];
   zaccelstorage[0] = ezaccel ;
-  
+
   float xmean = (xaccelstorage[0] + xaccelstorage[1] + xaccelstorage[2] + xaccelstorage[3] + xaccelstorage[4]) / 5;
   float ymean = (yaccelstorage[0] + yaccelstorage[1] + yaccelstorage[2] + yaccelstorage[3] + yaccelstorage[4]) / 5;
   float zmean = (zaccelstorage[0] + zaccelstorage[1] + zaccelstorage[2] + zaccelstorage[3] + zaccelstorage[4]) / 5;
-  Serial.print("Mean of the last 5 X acceleration values");
+  Serial.print(F("Mean of the last 5 X acceleration values"));
   Serial.println(xmean);
   
-  Serial.print("Mean of the last 5 Y acceleration values");
+  Serial.print(F("Mean of the last 5 Y acceleration values"));
   Serial.println(ymean);
   
-  Serial.print("Mean of the last 5 Z acceleration values");
+  Serial.print(F("Mean of the last 5 Z acceleration values"));
   Serial.println(zmean);
   bool isxaccelerating = false;
   bool isyaccelerating = false;
@@ -183,11 +183,11 @@ void setup(void)
       fileName[BASE_NAME_SIZE + 1] = '0';
       fileName[BASE_NAME_SIZE]++;
     } else {
-      error("Can't create file name");
+      error(F("Can't create file name"));
     }
   }
   if (!file.open(fileName, O_CREAT | O_WRITE | O_EXCL)) {
-    error("file.open");
+    error(F("file.open"));
   }
   // Read any Serial data.
   do {
@@ -212,7 +212,7 @@ void setup(void)
   if(!bmp.begin())
   {
     /* There was a problem detecting the BMP085 ... check your connections */
-    Serial.print("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!");
+    Serial.print(F("Ooops, no BMP085 detected ... Check your wiring or I2C ADDR!"));
     while(1);
   }
   
@@ -249,19 +249,19 @@ void loop(void)
      if (bmpevent.pressure)
      {
        // Display and record atmospheric pressure in hPa 
-       Serial.print("Pressure:    ");
+       Serial.print(F("Pressure: "));
        Serial.print(bmpevent.pressure);
        logSensorData(bmpevent.pressure);
-       Serial.println(" hPa");
+       Serial.println(F(" hPa"));
 
       //Get and log the current temperature from the bmp180
 
       float temperature;
       bmp.getTemperature(&temperature);
       logSensorData(temperature);
-      Serial.print("Temperature: ");
+      Serial.print(F("Temperature: "));
       Serial.print(temperature);
-      Serial.println(" C");
+      Serial.println(F(" C"));
 
       /*Take the SLP(from SensorCalibration.h) and the current pressure to calculate the altitude.
       You must update CURRENTSEALEVELPRESSURE in SensorCalibration.h in order to get an accurate result. 
@@ -271,16 +271,16 @@ void loop(void)
       as well as the youtube tutorial also linked in README.md*/
        float seaLevelPressure = CURRENTSEALEVELPRESSURE;
        float altitude = bmp.pressureToAltitude(seaLevelPressure, bmpevent.pressure);
-       Serial.print("Altitude:    "); 
+       Serial.print(F("Altitude: ")); 
        Serial.print(altitude); 
        logSensorData(altitude);
-       Serial.println(" m");
-       Serial.println("");
+       Serial.println(F(" m"));
+       
        isAtApogee(altitude);
      }
      else 
      {
-       Serial.println("Sensor error");
+       Serial.println(F("Sensor error"));
      }
      if(atApogee) {
       // do yo parachute code
@@ -289,19 +289,19 @@ void loop(void)
      logSensorData(xaccel);
      logSensorData(yaccel);
      logSensorData(zaccel);
-     Serial.print("X: "); Serial.print(xaccel); Serial.print("  ");
-     Serial.print("Y: "); Serial.print(yaccel); Serial.print("  ");
-     Serial.print("Z: "); Serial.print(zaccel); Serial.print("  ");Serial.println("m/s^2 ");
+     Serial.print(F("X: ")); Serial.print(xaccel); Serial.print(F("  "));
+     Serial.print(F("Y: ")); Serial.print(yaccel); Serial.print(F("  "));
+     Serial.print(F("Z: ")); Serial.print(zaccel); Serial.print(F("  "));Serial.println(F("m/s^2 "));
 
   } else { 
     /*In the event that isMoving() decides that the probe isn't moving, the time is still printed
     along with a small message that specifies that the probe isn't gonna collect data while it's
     not moving */
     file.print((time));
-    file.print(",");
-    file.print("Probe is motionless,");
-    file.print("and is not ");
-    file.print("collecting data");
+    file.print(F(","));
+    file.print(F("Probe is motionless,"));
+    file.print(F("and is not "));
+    file.print(F("collecting data"));
     //Printing the time and error to the Serial bus. 
     Serial.print((time));
     Serial.print(",");
