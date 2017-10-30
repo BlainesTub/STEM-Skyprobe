@@ -108,13 +108,13 @@ void isMoving(float exaccel, float eyaccel, float ezaccel) {
   float xmean = (xaccelstorage[0] + xaccelstorage[1] + xaccelstorage[2] + xaccelstorage[3] + xaccelstorage[4]) / 5;
   float ymean = (yaccelstorage[0] + yaccelstorage[1] + yaccelstorage[2] + yaccelstorage[3] + yaccelstorage[4]) / 5;
   float zmean = (zaccelstorage[0] + zaccelstorage[1] + zaccelstorage[2] + zaccelstorage[3] + zaccelstorage[4]) / 5;
-  Serial.print(F("Mean of the last 5 X acceleration values"));
+  Serial.print(F("Mean of the last 5 X acceleration values: "));
   Serial.println(xmean);
   
-  Serial.print(F("Mean of the last 5 Y acceleration values"));
+  Serial.print(F("Mean of the last 5 Y acceleration values: "));
   Serial.println(ymean);
   
-  Serial.print(F("Mean of the last 5 Z acceleration values"));
+  Serial.print(F("Mean of the last 5 Z acceleration values: "));
   Serial.println(zmean);
   bool isxaccelerating = false;
   bool isyaccelerating = false;
@@ -228,6 +228,12 @@ void setup(void)
 /**************************************************************************/
 void loop(void) 
 {
+  
+  // Print the time to the serial bus and file
+  Serial.print(F("Time: "));
+  Serial.println(time);
+  file.print((time));
+  file.print(F(","));
   //Get the current acceleration values from the accelerometer and check if the probe is moving.
   sensors_event_t accelevent; 
   accel.getEvent(&accelevent);
@@ -242,8 +248,7 @@ void loop(void)
      sensors_event_t bmpevent;
      bmp.getEvent(&bmpevent);
 
-     file.print((time));
-     file.print(",");
+   
      //Check if there is a detected air pressure.
      if (bmpevent.pressure)
      {
@@ -293,20 +298,17 @@ void loop(void)
      Serial.print(F("Z: ")); Serial.print(zaccel); Serial.print(F("  "));Serial.println(F("m/s^2 "));
 
   } else { 
-    /*In the event that isMoving() decides that the probe isn't moving, the time is still printed
-    along with a small message that specifies that the probe isn't gonna collect data while it's
+    /*In the event that isMoving() decides that the probe isn't moving, a small message is
+    printed that specifies that the probe isn't gonna collect data while it's
     not moving */
-    file.print((time));
-    file.print(F(","));
+
     file.print(F("Probe is motionless,"));
     file.print(F("and is not "));
     file.print(F("collecting data"));
-    //Printing the time and error to the Serial bus. 
-    Serial.print((time));
-    Serial.print(",");
-    Serial.print("Probe is motionless,");
-    Serial.print("and is not ");
-    Serial.print("collecting data");
+    //Printing lack of motion message and error to the Serial bus. 
+    Serial.print(F("Probe is motionless,"));
+    Serial.print(F(" and is not "));
+    Serial.println(F("collecting data"));
   }
   
 
@@ -329,7 +331,6 @@ void loop(void)
   }
   
   time += SAMPLE_INTERVAL_MS;
-  Serial.println(time);
 
 
   file.print("\n");

@@ -60,3 +60,4 @@ If the SdInfo sketch outputs an error and says the Sd card needs to be formatted
 The most common problem that I've encountered has been the accelerometer randomly failing, and stopping collecting data. The solution to this problem for me has been running the accelerometer test sketch, which you can find in the Arduino IDE in File/Examples/Adafruit ADXL345/sensortest. 
 
 Uploading and running the sketch should output actual values from the accelerometer and fix it from both the test/launch sketch and the accelerometer sketch. 
+
