@@ -119,17 +119,17 @@ void isMoving(float exaccel, float eyaccel, float ezaccel) {
   bool isxaccelerating = false;
   bool isyaccelerating = false;
   bool iszaccelerating = false;
-  if (xmean >= -0.1 && xmean <= 0.1)  {
+  if (xmean >= -accelerometerMOE && xmean <= accelerometerMOE)  {
       isxaccelerating = false;
   } else {
     isxaccelerating = true;
   } 
-  if (ymean >= -0.1 && ymean <= 0.1) {
+  if (ymean >= -accelerometerMOE && ymean <= accelerometerMOE) {
       isyaccelerating = false;
   } else {
     isyaccelerating = true;
   }
-  if (zmean >= -0.1 && zmean <= 0.1) {
+  if (zmean >= -accelerometerMOE && zmean <= accelerometerMOE) {
       iszaccelerating = false;
   } else {
     iszaccelerating = true;
